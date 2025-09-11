@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แผนที่ + QR Code</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  body,html {
+    margin:0; padding:0;
+    height:100%; width:100%;
+    font-family:sans-serif;
+    background: #f0f2f5;
+  }
+  .container {
+    position:relative;
+    width:100%;
+    height:100vh;
+  }
+  /* แผนที่เต็มจอ */
+  #mapFrame {
+    width:100%;
+    height:100%;
+    border:0;
+  }
+
+  /* กล่องควบคุมพิกัด - อยู่บนสุดกลางจอ */
+  #coordBox {
+    position:absolute;
+    top: 15px; 
+    left: 50%;
+    transform: translateX(-50%);
+    background:#ffffff;
+    padding:15px;
+    border-radius:8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .coord-inputs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .coord-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .coord-row .section-title {
+    min-width: 50px;
+    margin-bottom: 0;
+  }
+  
+  .coord-row input {
+    width: 300px;
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #4CAF50;
+    border-radius: 4px;
+  }
+
+  /* ปุ่มอัปเดต */
+  #coordBox button {
+    padding: 8px 16px;
+    font-size: 14px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+  }
+  
+  #coordBox button:hover {
+    background-color: #45a049;
+  }
+
+  /* ช่องกรอกชื่องาน - อยู่ล่างสุดกลางจอ */
+  #jobBox {
+    position:absolute;
+    bottom: 10px; 
+    left: 45%;
+    transform: translateX(-50%);
+    background:#ffffff;
+    padding:12px 20px;
+    border-radius:8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  #jobBox .section-title {
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+  
+  #jobBox input {
+    width: 800px;
+    padding: 8px 12px;
+    font-size: 16px;
+    border: 1px solid #2196F3;
+    border-radius: 4px;
+  }
+
+  /* ปุ่มปริ๊น */
+  #printBtn {
+    position:absolute;
+    top:15px; 
+    right:15px;
+    background:#ffffff;
+    padding:12px 18px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:16px;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+    transition: all 0.2s;
+    z-index: 100;
+  }
+  
+  #printBtn:hover {
+    background: #f8f8f8;
+    transform: scale(1.03);
+  }
+
+  /* ปุ่มล้างข้อมูล */
+  #clearBtn {
+    position:absolute;
+    top:70px; 
+    right:15px;
+    background:#ffffff;
+    padding:10px 15px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:15px;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    border: 1px solid #ff4d4d;
+    color: #ff4d4d;
+    transition: all 0.2s;
+    z-index: 100;
+  }
+  
+  #clearBtn:hover {
+    background: #fff0f0;
+    transform: scale(1.03);
+  }
+
+  /* QR Code */
+  #qrcodeBox {
+    position:absolute;
+    bottom:15px; 
+    right:70px;
+    background:#ffffff;
+    padding:10px;
+    border-radius:6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    z-index: 100;
+  }
+
+  /* สไตล์สำหรับการพิมพ์ */
+  @media print {
+    @page {
+      size: A4 landscape; /* ตั้งค่าเป็น A4 แนวนอน */
+      margin: 0; /* ลบ margins */
+    }
+    
+    body, html {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background: white;
+    }
+    
+    .container {
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+      page-break-after: avoid; /* ไม่ให้แบ่งหน้า */
+      page-break-before: avoid;
+      page-break-inside: avoid;
+    }
+    
+    #mapFrame {
+      height: 100%;
+      width: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    #jobBox {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 10px 15px;
+      border: 2px solid #000;
+      border-radius: 5px;
+      z-index: 100;
+      width: 80%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    #jobBox input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      padding: 5px;
+    }
+    
+    #jobBox .section-title {
+      display: none; /* ซ่อนคำว่า "ชื่องาน:" เมื่อพิมพ์ */
+    }
+    
+    #qrcodeBox {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      padding: 8px;
+      border: 1px solid #000;
+      z-index: 100;
+    }
+    
+    /* ซ่อนองค์ประกอบที่ไม่จำเป็นเมื่อพิมพ์ */
+    #coordBox, #printBtn, #clearBtn {
+      display: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- แผนที่ -->
+  <iframe id="mapFrame" 
+    src="https://www.google.com/maps?q=9°47'14.1N 101°20'07.1E&output=embed" 
+    allowfullscreen loading="lazy"></iframe>
+
+  <!-- กล่องควบคุมพิกัด - อยู่บนสุดกลางจอ -->
+  <div id="coordBox">
+    <!-- ช่องกรอกพิกัดแบบช่องเดียว -->
+    <div class="coord-inputs">
+      <div class="coord-row">
+        <div class="section-title">พิกัด:</div>
+        <input type="text" id="coords" value='9°47′14.1″N 101°20′07.1″E' placeholder="เช่น: 9°47′14.1″N 101°20′07.1″E">
+      </div>
+      <button onclick="updateMap()">อัปเดตแผนที่</button>
+    </div>
+  </div>
+
+  <!-- ช่องกรอกชื่องาน - อยู่ล่างสุดกลางจอ -->
+  <div id="jobBox">
+    <div class="section-title">ชื่องาน:</div>
+    <input type="text" id="jobName" placeholder="กรอกชื่อหน่วยงานหรือชื่องาน">
+  </div>
+
+  <!-- ปุ่มปริ๊น -->
+  <div id="printBtn" onclick="window.print()">🖨️ ปริ๊น</div>
+
+  <!-- ปุ่มล้างข้อมูล -->
+  <div id="clearBtn" onclick="clearAll()">ล้างข้อมูล</div>
+
+  <!-- QR Code -->
+  <div id="qrcodeBox">
+    <div id="qrcode"></div>
+  </div>
+</div>
+
+<script>
+  // สร้าง QR เริ่มต้นด้วยพิกัดใหม่
+  var qrcode = new QRCode(document.getElementById("qrcode"), {
+    text: "https://www.google.com/maps?q=9°47'14.1N 101°20'07.1E",
+    width: 150,
+    height: 150,
+  });
+
+  function updateMap() {
+    var coords = document.getElementById("coords").value.trim();
+    if(!coords) return;
+
+    // URL สำหรับ iframe
+    var mapURL = "https://www.google.com/maps?q=" + encodeURIComponent(coords) + "&output=embed";
+    document.getElementById("mapFrame").src = mapURL;
+
+    // URL สำหรับ QR Code
+    var mapsLink = "https://www.google.com/maps?q=" + encodeURIComponent(coords);
+    // clear แล้วสร้างใหม่
+    document.getElementById("qrcode").innerHTML = "";
+    qrcode = new QRCode(document.getElementById("qrcode"), {
+      text: mapsLink,
+      width: 150,
+      height: 150,
+    });
+    
+    alert("อัปเดตแผนที่เรียบร้อยแล้ว!");
+  }
+
+  // ฟังก์ชันล้างข้อมูลทั้งหมด
+  function clearAll() {
+    if(confirm("หน้านี้ล้างได้ ห้ามล้างใจนะจ๊ะ?")) {
+      document.getElementById("jobName").value = "";
+      document.getElementById("coords").value = "";
+      
+      // รีเซ็ตแผนที่เป็นค่าเริ่มต้น
+      var mapURL = "https://www.google.com/maps?q=9°47'14.1N 101°20'07.1E&output=embed";
+      document.getElementById("mapFrame").src = mapURL;
+      
+      // รีเซ็ต QR Code
+      document.getElementById("qrcode").innerHTML = "";
+      qrcode = new QRCode(document.getElementById("qrcode"), {
+        text: "https://www.google.com/maps?q=9°47'14.1N 101°20'07.1E",
+        width: 150,
+        height: 150,
+      });
+      
+      alert("ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว");
+    }
+  }
+</script>
+
+</body>
+</html>
