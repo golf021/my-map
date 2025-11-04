@@ -137,7 +137,7 @@
   #shareBtn {
     position:absolute;
     top:15px; 
-    right:120px;
+    right:100px;
     background:#ffffff;
     padding:12px 18px;
     border-radius:6px;
@@ -360,7 +360,7 @@
   </div>
 
   <!-- ปุ่มแชร์ลิงก์ -->
-  <div id="shareBtn" onclick="shareLink()">🔗 แชร์ลิงก์</div>
+  <div id="shareBtn" onclick="shareLocation()">📍 แชร์โลเคชัน</div>
 
   <!-- ปุ่มปริ๊น -->
   <div id="printBtn" onclick="window.print()">🖨️ ปริ๊น</div>
@@ -375,6 +375,10 @@
 </div>
 
 <script>
+  // ตัวแปรเก็บข้อมูลปัจจุบัน
+  let currentCoords = '9°47′14.1″N 101°20′07.1″E';
+  let currentJobName = '';
+  
   // สร้าง QR เริ่มต้นด้วยพิกัดใหม่
   var qrcode = new QRCode(document.getElementById("qrcode"), {
     text: "https://www.google.com/maps?q=9°47'14.1N 101°20'07.1E",
@@ -382,30 +386,13 @@
     height: 150,
   });
 
-  // ฟังก์ชันโหลดข้อมูลจาก URL
-  function loadFromURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const coords = urlParams.get('coords');
-    const jobName = urlParams.get('job');
-    
-    if (coords) {
-      document.getElementById('coords').value = coords;
-      updateMap();
-    }
-    
-    if (jobName) {
-      document.getElementById('jobName').value = jobName;
-    }
-  }
-
-  // เรียกฟังก์ชันโหลดข้อมูลจาก URL เมื่อโหลดหน้าเว็บ
-  window.onload = function() {
-    loadFromURL();
-  };
-
   function updateMap() {
     var coords = document.getElementById("coords").value.trim();
     if(!coords) return;
+    
+    // อัปเดตพิกัดปัจจุบัน
+    currentCoords = coords;
+    currentJobName = document.getElementById("jobName").value.trim();
 
     // URL สำหรับ iframe
     var mapURL = "https://www.google.com/maps?q=" + encodeURIComponent(coords) + "&output=embed";
@@ -442,40 +429,46 @@
         height: 150,
       });
       
+      // รีเซ็ตตัวแปรปัจจุบัน
+      currentCoords = '9°47′14.1″N 101°20′07.1″E';
+      currentJobName = '';
+      
       alert("ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว");
     }
   }
 
-  // ฟังก์ชันแชร์ลิงก์
-  function shareLink() {
-    const coords = document.getElementById("coords").value.trim();
-    const jobName = document.getElementById("jobName").value.trim();
+  // ฟังก์ชันแชร์โลเคชัน
+  function shareLocation() {
+    // อัปเดตข้อมูลปัจจุบันก่อนแชร์
+    currentCoords = document.getElementById("coords").value.trim();
+    currentJobName = document.getElementById("jobName").value.trim();
     
-    if (!coords) {
-      alert("กรุณากรอกพิกัดก่อนแชร์ลิงก์");
+    if (!currentCoords) {
+      alert("กรุณากรอกพิกัดก่อนแชร์โลเคชัน");
       return;
     }
     
-    // สร้าง URL พร้อมพารามิเตอร์
-    const baseUrl = window.location.origin + window.location.pathname;
-    const params = new URLSearchParams();
-    params.append('coords', coords);
-    if (jobName) {
-      params.append('job', jobName);
+    // สร้างลิงก์ Google Maps
+    const mapsLink = `https://www.google.com/maps?q=${encodeURIComponent(currentCoords)}`;
+    
+    // สร้างข้อความสำหรับแชร์
+    let shareText = `📍 ตำแหน่ง: ${currentCoords}`;
+    if (currentJobName) {
+      shareText += `\n📋 ชื่องาน: ${currentJobName}`;
     }
+    shareText += `\n\n🗺️ ดูบน Google Maps: ${mapsLink}`;
     
-    const shareUrl = `${baseUrl}?${params.toString()}`;
-    
-    // สร้างโมดัลแสดงลิงก์
+    // สร้างโมดัลแสดงตัวเลือกการแชร์
     const modalOverlay = document.createElement('div');
     modalOverlay.className = 'modal-overlay';
     modalOverlay.innerHTML = `
       <div class="modal">
-        <h3>แชร์ลิงก์</h3>
-        <p>ลิงก์นี้ประกอบด้วยข้อมูลพิกัดและชื่องานที่กรอกไว้:</p>
-        <div class="share-link">${shareUrl}</div>
+        <h3>แชร์โลเคชัน</h3>
+        <p>ตำแหน่งปัจจุบัน: <strong>${currentCoords}</strong></p>
+        ${currentJobName ? `<p>ชื่องาน: <strong>${currentJobName}</strong></p>` : ''}
+        <div class="share-link">${shareText}</div>
         <div class="modal-buttons">
-          <button class="copy-btn" onclick="copyToClipboard('${shareUrl}')">คัดลอกลิงก์</button>
+          <button class="copy-btn" onclick="copyLocationToClipboard()">คัดลอกข้อมูล</button>
           <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">ปิด</button>
         </div>
       </div>
@@ -491,19 +484,75 @@
     });
   }
 
-  // ฟังก์ชันคัดลอกลิงก์
-  function copyToClipboard(text) {
+  // ฟังก์ชันคัดลอกข้อมูลโลเคชัน
+  function copyLocationToClipboard() {
+    // อัปเดตข้อมูลปัจจุบันก่อนคัดลอก
+    currentCoords = document.getElementById("coords").value.trim();
+    currentJobName = document.getElementById("jobName").value.trim();
+    
+    if (!currentCoords) {
+      alert("กรุณากรอกพิกัดก่อนคัดลอกข้อมูล");
+      return;
+    }
+    
+    // สร้างลิงก์ Google Maps
+    const mapsLink = `https://www.google.com/maps?q=${encodeURIComponent(currentCoords)}`;
+    
+    // สร้างข้อความสำหรับแชร์
+    let shareText = `📍 ตำแหน่ง: ${currentCoords}`;
+    if (currentJobName) {
+      shareText += `\n📋 ชื่องาน: ${currentJobName}`;
+    }
+    shareText += `\n\n🗺️ ดูบน Google Maps: ${mapsLink}`;
+    
+    // คัดลอกข้อความ
     const textarea = document.createElement('textarea');
-    textarea.value = text;
+    textarea.value = shareText;
     document.body.appendChild(textarea);
     textarea.select();
     document.execCommand('copy');
     document.body.removeChild(textarea);
     
-    alert('คัดลอกลิงก์เรียบร้อยแล้ว!');
+    alert('คัดลอกข้อมูลโลเคชันเรียบร้อยแล้ว! สามารถวางในแอปแชทหรืออีเมลได้เลย');
     
     // ปิดโมดัลหลังจากคัดลอก
     document.querySelector('.modal-overlay').remove();
+  }
+
+  // ฟังก์ชันสำหรับแชร์ผ่าน Web Share API (ถ้าเบราว์เซอร์รองรับ)
+  function shareViaWebAPI() {
+    // อัปเดตข้อมูลปัจจุบันก่อนแชร์
+    currentCoords = document.getElementById("coords").value.trim();
+    currentJobName = document.getElementById("jobName").value.trim();
+    
+    if (!currentCoords) {
+      alert("กรุณากรอกพิกัดก่อนแชร์โลเคชัน");
+      return;
+    }
+    
+    // สร้างลิงก์ Google Maps
+    const mapsLink = `https://www.google.com/maps?q=${encodeURIComponent(currentCoords)}`;
+    
+    // สร้างข้อความสำหรับแชร์
+    let shareText = `📍 ตำแหน่ง: ${currentCoords}`;
+    if (currentJobName) {
+      shareText += `\n📋 ชื่องาน: ${currentJobName}`;
+    }
+    shareText += `\n\n🗺️ ดูบน Google Maps: ${mapsLink}`;
+    
+    // ใช้ Web Share API ถ้ามี
+    if (navigator.share) {
+      navigator.share({
+        title: 'แชร์ตำแหน่ง',
+        text: shareText,
+        url: mapsLink
+      })
+      .then(() => console.log('แชร์สำเร็จ'))
+      .catch((error) => console.log('เกิดข้อผิดพลาดในการแชร์:', error));
+    } else {
+      // ถ้าเบราว์เซอร์ไม่รองรับ Web Share API ให้ใช้วิธีเดิม
+      shareLocation();
+    }
   }
 </script>
 
