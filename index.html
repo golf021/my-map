@@ -133,6 +133,29 @@
     transform: scale(1.03);
   }
 
+  /* ปุ่มแชร์ลิงก์ */
+  #shareBtn {
+    position:absolute;
+    top:15px; 
+    right:120px;
+    background:#ffffff;
+    padding:12px 18px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:16px;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    border: 1px solid #2196F3;
+    color: #2196F3;
+    transition: all 0.2s;
+    z-index: 100;
+  }
+  
+  #shareBtn:hover {
+    background: #e3f2fd;
+    transform: scale(1.03);
+  }
+
   /* ปุ่มล้างข้อมูล */
   #clearBtn {
     position:absolute;
@@ -166,6 +189,69 @@
     border-radius:6px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     z-index: 100;
+  }
+
+  /* โหมดมืดสำหรับแจ้งเตือน */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    max-width: 500px;
+    width: 90%;
+  }
+  
+  .modal h3 {
+    margin-top: 0;
+    color: #333;
+  }
+  
+  .share-link {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 15px 0;
+    font-size: 14px;
+    background: #f9f9f9;
+    word-break: break-all;
+  }
+  
+  .modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  .modal-buttons button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  
+  .copy-btn {
+    background: #4CAF50;
+    color: white;
+  }
+  
+  .close-btn {
+    background: #f5f5f5;
+    color: #333;
   }
 
   /* สไตล์สำหรับการพิมพ์ */
@@ -241,7 +327,7 @@
     }
     
     /* ซ่อนองค์ประกอบที่ไม่จำเป็นเมื่อพิมพ์ */
-    #coordBox, #printBtn, #clearBtn {
+    #coordBox, #printBtn, #clearBtn, #shareBtn {
       display: none !important;
     }
   }
@@ -273,6 +359,9 @@
     <input type="text" id="jobName" placeholder="กรอกชื่อหน่วยงานหรือชื่องาน">
   </div>
 
+  <!-- ปุ่มแชร์ลิงก์ -->
+  <div id="shareBtn" onclick="shareLink()">🔗 แชร์ลิงก์</div>
+
   <!-- ปุ่มปริ๊น -->
   <div id="printBtn" onclick="window.print()">🖨️ ปริ๊น</div>
 
@@ -292,6 +381,27 @@
     width: 150,
     height: 150,
   });
+
+  // ฟังก์ชันโหลดข้อมูลจาก URL
+  function loadFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const coords = urlParams.get('coords');
+    const jobName = urlParams.get('job');
+    
+    if (coords) {
+      document.getElementById('coords').value = coords;
+      updateMap();
+    }
+    
+    if (jobName) {
+      document.getElementById('jobName').value = jobName;
+    }
+  }
+
+  // เรียกฟังก์ชันโหลดข้อมูลจาก URL เมื่อโหลดหน้าเว็บ
+  window.onload = function() {
+    loadFromURL();
+  };
 
   function updateMap() {
     var coords = document.getElementById("coords").value.trim();
@@ -334,6 +444,66 @@
       
       alert("ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว");
     }
+  }
+
+  // ฟังก์ชันแชร์ลิงก์
+  function shareLink() {
+    const coords = document.getElementById("coords").value.trim();
+    const jobName = document.getElementById("jobName").value.trim();
+    
+    if (!coords) {
+      alert("กรุณากรอกพิกัดก่อนแชร์ลิงก์");
+      return;
+    }
+    
+    // สร้าง URL พร้อมพารามิเตอร์
+    const baseUrl = window.location.origin + window.location.pathname;
+    const params = new URLSearchParams();
+    params.append('coords', coords);
+    if (jobName) {
+      params.append('job', jobName);
+    }
+    
+    const shareUrl = `${baseUrl}?${params.toString()}`;
+    
+    // สร้างโมดัลแสดงลิงก์
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay';
+    modalOverlay.innerHTML = `
+      <div class="modal">
+        <h3>แชร์ลิงก์</h3>
+        <p>ลิงก์นี้ประกอบด้วยข้อมูลพิกัดและชื่องานที่กรอกไว้:</p>
+        <div class="share-link">${shareUrl}</div>
+        <div class="modal-buttons">
+          <button class="copy-btn" onclick="copyToClipboard('${shareUrl}')">คัดลอกลิงก์</button>
+          <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">ปิด</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modalOverlay);
+    
+    // ปิดโมดัลเมื่อคลิกนอกกล่อง
+    modalOverlay.addEventListener('click', function(e) {
+      if (e.target === modalOverlay) {
+        modalOverlay.remove();
+      }
+    });
+  }
+
+  // ฟังก์ชันคัดลอกลิงก์
+  function copyToClipboard(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    
+    alert('คัดลอกลิงก์เรียบร้อยแล้ว!');
+    
+    // ปิดโมดัลหลังจากคัดลอก
+    document.querySelector('.modal-overlay').remove();
   }
 </script>
 
